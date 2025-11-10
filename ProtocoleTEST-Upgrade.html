@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test de l'Archétype Divin Grec</title>
+<style>
+  body {
+    font-family: 'Cinzel', serif;
+    background: url('https://i.imgur.com/V2lQ6qx.png') no-repeat center center fixed;
+    background-size: cover;
+    color: #f1f1f1;
+    text-align: center;
+    padding: 30px;
+  }
+  .container {
+    background: rgba(0, 0, 0, 0.6);
+    padding: 25px;
+    border-radius: 20px;
+    max-width: 850px;
+    margin: auto;
+    box-shadow: 0 0 20px rgba(255,255,255,0.1);
+  }
+  h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+    color: #f8f8ff;
+    text-shadow: 0 0 10px #6fb1ff;
+  }
+  .question {
+    margin-bottom: 20px;
+    padding: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+  }
+  .options label {
+    margin: 0 8px;
+    font-size: 1em;
+  }
+  .options input[type="radio"] {
+    transform: scale(1.3);
+    margin: 5px;
+  }
+  button {
+    background-color: #203b6b;
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    margin-top: 15px;
+    border-radius: 10px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  button:hover {
+    background-color: #365ca8;
+  }
+  #resultPopup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 15, 25, 0.95);
+    color: #fff;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 0 20px rgba(255,255,255,0.3);
+    text-align: center;
+  }
+  #resultPopup h2 { margin-top: 0; }
+  input[type="text"] {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    width: 80%;
+    font-size: 1em;
+  }
+  #confidential {
+    margin-top: 10px;
+    transform: scale(1.3);
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Quel Dieu Grec sommeille en toi ?</h1>
+    <input type="text" id="username" placeholder="Entre ton nom ici..."><br>
+    <label><input type="checkbox" id="confidential" checked> Résultat caché (envoi seulement sur Discord)</label>
+
+    <div id="questions"></div>
+    <button onclick="calculateResult()">Découvrir mon archétype</button>
+  </div>
+
+  <div id="resultPopup">
+    <h2 id="resultTitle"></h2>
+    <p id="resultText"></p>
+    <button onclick="restartTest()">Recommencer le test</button>
+  </div>
+
+<script>
+// === WEBHOOK DISCORD ===
+// 🔹 Remplace la ligne ci-dessous par ton lien webhook :
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1437363920703848458/SEJzMcoithoL9uXawvZi791GSuikvNBVH9j3CAQdgBk_VrWSDCC58lWvqIaS2BpzemwS";
+
+const questions = [
+  { text: "Tu te sens souvent responsable du bien-être des autres.", weights: { Zeus: 1, Hera: 1, Demeter: 1 } },
+  { text: "Tu préfères travailler seul(e) plutôt qu’en groupe.", weights: { Hades: 1, Athena: 1, Artemis: 1 } },
+  { text: "Tu trouves de l’énergie dans les débats d’idées et les discussions profondes.", weights: { Hermes: 1, Apollo: 1, Athena: 1 } },
+  { text: "Tu t’attaches facilement aux gens et cherches des relations intenses.", weights: { Aphrodite: 1, Dionysus: 1, Hera: 1 } },
+  { text: "Tu ressens un lien fort avec la nature et les cycles du monde.", weights: { Demeter: 1, Artemis: 1, Poseidon: 1 } },
+  { text: "Tu te sens plus à l’aise dans le chaos que dans la routine.", weights: { Dionysus: 1, Ares: 1, Nyx: 1 } },
+  { text: "Tu observes beaucoup avant d’agir.", weights: { Athena: 1, Hades: 1, Hephaestus: 1 } },
+  { text: "Tu ressens parfois le besoin de te prouver par la force.", weights: { Ares: 1, Zeus: 1, Poseidon: 1 } },
+  { text: "Tu es intrigué(e) par les mystères du sommeil ou de la mort.", weights: { Nyx: 1, Hades: 1, Apollo: 1 } },
+  { text: "Tu as une imagination débordante mais du mal à canaliser ton énergie.", weights: { Dionysus: 1, Apollo: 1, Hermes: 1 } },
+  { text: "Tu préfères guider plutôt que suivre.", weights: { Zeus: 1, Athena: 1, Ares: 1 } },
+  { text: "Tu restes calme même dans les situations tendues.", weights: { Poseidon: 1, Athena: 1, Demeter: 1 } },
+  { text: "Tu cherches à comprendre les émotions des autres.", weights: { Aphrodite: 1, Hera: 1, Hermes: 1 } },
+  { text: "Tu trouves de la beauté dans la solitude.", weights: { Artemis: 1, Hades: 1, Nyx: 1 } },
+  { text: "Tu penses que la justice doit primer sur les émotions.", weights: { Athena: 1, Zeus: 1, Hephaestus: 1 } },
+  { text: "Tu remets souvent les règles en question.", weights: { Hermes: 1, Dionysus: 1, Ares: 1 } },
+  { text: "Tu préfères un environnement stable à l’imprévu.", weights: { Demeter: 1, Hera: 1, Hephaestus: 1 } },
+  { text: "Tu résous les problèmes de façon créative et logique.", weights: { Hephaestus: 1, Athena: 1, Apollo: 1 } },
+  { text: "Tu cherches à inspirer ou impressionner les autres.", weights: { Apollo: 1, Ares: 1, Zeus: 1 } },
+  { text: "Tu vis tes émotions de manière intense.", weights: { Dionysus: 1, Aphrodite: 1, Nyx: 1 } },
+  { text: "Tu préfères comprendre que dominer.", weights: { Hades: 1, Athena: 1, Hephaestus: 1 } },
+  { text: "Tu agis avant de trop réfléchir.", weights: { Ares: 1, Artemis: 1, Poseidon: 1 } },
+  { text: "Tu t’adaptes facilement à l’inattendu.", weights: { Hermes: 1, Dionysus: 1, Apollo: 1 } },
+  { text: "Tu es loyal(e) envers ceux que tu aimes.", weights: { Hera: 1, Demeter: 1, Aphrodite: 1 } },
+  { text: "Tu t’exprimes mieux par l’art ou la création.", weights: { Apollo: 1, Hephaestus: 1, Aphrodite: 1 } },
+  { text: "Tu apaises naturellement les tensions autour de toi.", weights: { Poseidon: 1, Demeter: 1, Athena: 1 } },
+  { text: "Tu cherches toujours à comprendre le “pourquoi”.", weights: { Hades: 1, Athena: 1, Hermes: 1 } },
+  { text: "Tu ressens une connexion avec la nuit ou le silence.", weights: { Nyx: 1, Artemis: 1, Hades: 1 } },
+  { text: "Tu préfères construire du durable plutôt que de l’éphémère.", weights: { Hephaestus: 1, Demeter: 1, Apollo: 1 } },
+  { text: "Tu crois que chaque être a sa part d’ombre et de lumière.", weights: { Nyx: 1, Apollo: 1, Aphrodite: 1 } }
+];
+
+// === Génération du questionnaire ===
+const container = document.getElementById("questions");
+questions.forEach((q, i) => {
+  const div = document.createElement("div");
+  div.classList.add("question");
+  div.innerHTML = `<p>${i + 1}. ${q.text}</p>
+  <div class="options">
+    ${[1,2,3,4,5].map(val => `
+      <label><input type="radio" name="q${i}" value="${val}"> ${val}</label>
+    `).join('')}
+  </div>`;
+  container.appendChild(div);
+});
+
+// === Calcul du résultat ===
+function calculateResult() {
+  const scores = {};
+  const confidential = document.getElementById("confidential").checked;
+  const username = document.getElementById("username").value || "Inconnu";
+
+  questions.forEach((q, i) => {
+    const selected = document.querySelector(`input[name="q${i}"]:checked`);
+    if (selected) {
+      const val = parseInt(selected.value);
+      for (const god in q.weights) {
+        scores[god] = (scores[god] || 0) + q.weights[god] * val;
+      }
+    }
+  });
+
+  const total = Object.values(scores).reduce((a, b) => a + b, 0);
+  const results = Object.entries(scores).map(([god, score]) => [god, (score / total * 100).toFixed(1)]).sort((a,b) => b[1]-a[1]);
+
+  // Envoi sur Discord
+  const message = {
+    content: `**Nouveau test rempli !**\n👤 **Nom** : ${username}\n🔒 **Résultat affiché ?** ${confidential ? "Non (caché)" : "Oui"}\n\n**Classement :**\n${results.map(r => `• ${r[0]} : ${r[1]}%`).join("\n")}`
+  };
+  fetch(DISCORD_WEBHOOK_URL, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(message)
+  });
+
+  if (confidential) {
+    alert("Résultat envoyé sur Discord (confidentiel).");
+    restartTest();
+  } else {
+    const top = results[0];
+    document.getElementById("resultTitle").innerText = `Ton archétype est ${top[0]} !`;
+    document.getElementById("resultText").innerText = results.map(r => `${r[0]} : ${r[1]}%`).join("\n");
+    document.getElementById("resultPopup").style.display = "block";
+  }
+}
+
+// === Réinitialisation ===
+function restartTest() {
+  document.querySelectorAll("input[type='radio']").forEach(r => r.checked = false);
+  document.getElementById("username").value = "";
+  document.getElementById("resultPopup").style.display = "none";
+}
+</script>
+</body>
+</html>
